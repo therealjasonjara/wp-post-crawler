@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "WordPress Post Crawler",
-  "version": "2.0.0",
-  "description": "Crawl WordPress posts including drafts, extract title, content, meta description, and images. Export to JSON or CSV.",
+  "version": "2.1.0",
+  "description": "Crawl WordPress posts including drafts, extract title, content, meta description, and images. Export to JSON or CSV. Works in background!",
   "permissions": [
     "activeTab",
     "scripting",
@@ -29,5 +29,8 @@
       "matches": ["*://*/wp-admin/edit.php*", "*://*/wp-admin/post.php*"],
       "js": ["content.js"]
     }
-  ]
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
 }
