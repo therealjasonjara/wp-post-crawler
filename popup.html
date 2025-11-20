@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WP Post Crawler</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 400px;
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #f5f5f5;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 18px;
+      margin-bottom: 5px;
+    }
+
+    .header p {
+      font-size: 12px;
+      opacity: 0.9;
+    }
+
+    .section {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .section h2 {
+      font-size: 14px;
+      margin-bottom: 10px;
+      color: #333;
+    }
+
+    .checkbox-group {
+      margin-bottom: 10px;
+    }
+
+    .checkbox-group label {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      color: #555;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+      margin-right: 8px;
+      cursor: pointer;
+    }
+
+    .input-group {
+      margin-bottom: 10px;
+    }
+
+    .input-group label {
+      display: block;
+      font-size: 13px;
+      color: #555;
+      margin-bottom: 5px;
+    }
+
+    .input-group input[type="number"] {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+
+    .export-format-select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 13px;
+      background: white;
+      cursor: pointer;
+    }
+
+    .button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-bottom: 10px;
+    }
+
+    .button-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .button-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .button-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .button-secondary {
+      background: #6c757d;
+      color: white;
+    }
+
+    .button-secondary:hover {
+      background: #5a6268;
+    }
+
+    .button-debug {
+      background: #ffc107;
+      color: #000;
+    }
+
+    .button-debug:hover {
+      background: #e0a800;
+    }
+
+    .status {
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      margin-bottom: 10px;
+      display: none;
+    }
+
+    .status.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+      display: block;
+    }
+
+    .status.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+      display: block;
+    }
+
+    .status.info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+      display: block;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: #e9ecef;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 10px;
+      display: none;
+    }
+
+    .progress-bar.active {
+      display: block;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      transition: width 0.3s;
+      width: 0%;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .stat-box {
+      background: #f8f9fa;
+      padding: 10px;
+      border-radius: 4px;
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: 20px;
+      font-weight: bold;
+      color: #667eea;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: #6c757d;
+      margin-top: 2px;
+    }
+
+    .info-text {
+      font-size: 11px;
+      color: #6c757d;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🔍 WP Post Crawler</h1>
+    <p>Extract post data from WordPress</p>
+  </div>
+
+  <div id="statusMessage" class="status"></div>
+
+  <div class="progress-bar" id="progressBar">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+
+  <div class="section">
+    <h2>Crawl Settings</h2>
+    
+    <div class="checkbox-group">
+      <label>
+        <input type="checkbox" id="includePublished" checked>
+        Published Posts
+      </label>
+      <label>
+        <input type="checkbox" id="includeDrafts" checked>
+        Draft Posts
+      </label>
+      <label>
+        <input type="checkbox" id="includePending">
+        Pending Review
+      </label>
+      <label>
+        <input type="checkbox" id="includeScheduled">
+        Scheduled Posts
+      </label>
+    </div>
+
+    <div class="input-group">
+      <label for="postLimit">Number of Posts (0 = all)</label>
+      <input type="number" id="postLimit" value="0" min="0">
+    </div>
+
+    <div class="checkbox-group" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
+      <label>
+        <input type="checkbox" id="skipRedirects" checked>
+        Skip Redirected Posts
+      </label>
+      <p class="info-text" style="margin-left: 24px; margin-top: -5px;">
+        Automatically skip posts that redirect to other pages
+      </p>
+    </div>
+
+    <div class="checkbox-group" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
+      <label>
+        <input type="checkbox" id="visitPages">
+        Visit Each Post Page (Slower, Better Content)
+      </label>
+      <p class="info-text" style="margin-left: 24px; margin-top: -5px;">
+        Opens each post individually for complete content extraction
+      </p>
+    </div>
+
+    <div class="checkbox-group" style="margin-top: 10px;">
+      <label>
+        <input type="checkbox" id="downloadImages">
+        Download Images Found in Posts
+      </label>
+      <p class="info-text" style="margin-left: 24px; margin-top: -5px;">
+        Downloads all images to a folder (works with "Visit Pages" mode)
+      </p>
+    </div>
+
+    <div class="input-group" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
+      <label>Export Format</label>
+      <select id="exportFormat" class="export-format-select">
+        <option value="json">Single JSON file (all posts)</option>
+        <option value="csv-single">Single CSV file (all posts)</option>
+        <option value="csv-multiple">Multiple CSV files (one per post)</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>What Gets Crawled</h2>
+    <div class="checkbox-group">
+      <label>
+        <input type="checkbox" checked disabled>
+        ✓ Post Title
+      </label>
+      <label>
+        <input type="checkbox" checked disabled>
+        ✓ Post Content
+      </label>
+      <label>
+        <input type="checkbox" checked disabled>
+        ✓ Meta Description
+      </label>
+      <label>
+        <input type="checkbox" checked disabled>
+        ✓ All Images
+      </label>
+    </div>
+  </div>
+
+  <button id="crawlButton" class="button button-primary">
+    Start Crawling
+  </button>
+
+  <button id="downloadButton" class="button button-secondary" style="display: none;">
+    📥 Download Output Files
+  </button>
+
+  <button id="downloadLogsButton" class="button button-debug" style="display: none;">
+    🐛 Download Debug Logs
+  </button>
+
+  <div id="statsSection" style="display: none;">
+    <div class="stats">
+      <div class="stat-box">
+        <div class="stat-number" id="postCount">0</div>
+        <div class="stat-label">Posts Crawled</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-number" id="imageCount">0</div>
+        <div class="stat-label">Images Found</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="info-text">
+    💡 Make sure you're on a WordPress admin page (wp-admin/edit.php or post.php)
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
