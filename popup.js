@@ -67,15 +67,27 @@ document.addEventListener('DOMContentLoaded', () => {
       crawlButton.textContent = 'Start Crawling';
       updateProgress(0);
       
-      if (state.posts.length > 0) {
-        // Crawl completed
+      if (state.posts && state.posts.length > 0) {
+        // Crawl completed - show download button
         const totalImages = state.posts.reduce((sum, post) => {
           return sum + (post.images ? post.images.length : 0);
         }, 0);
         
         updateStats(state.posts.length, totalImages);
         showStatus(`Successfully crawled ${state.posts.length} posts!`, 'success');
+        
+        // Make sure button is visible and enabled
         downloadButton.style.display = 'block';
+        downloadButton.disabled = false;
+        downloadButton.style.opacity = '1';
+        downloadButton.style.pointerEvents = 'auto';
+        
+        console.log('Download button should be clickable now');
+        
+        // Show debug logs button if there are logs
+        if (state.logs && state.logs.length > 0) {
+          downloadLogsButton.style.display = 'block';
+        }
         
         // Handle image downloads if enabled
         const downloadImages = document.getElementById('downloadImages')?.checked ?? false;
@@ -142,7 +154,9 @@ document.addEventListener('DOMContentLoaded', () => {
       csv += row.join(',') + '\n';
     });
     
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    // Add UTF-8 BOM to prevent encoding issues (mojibake)
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -206,7 +220,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const filename = `post-${post.id || index + 1}-${sanitizeFilename(post.title)}.csv`;
         
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        // Add UTF-8 BOM to prevent encoding issues (mojibake)
+        const BOM = '\uFEFF';
+        const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -433,7 +449,8 @@ IMAGE LIST
         includeScheduled: document.getElementById('includeScheduled').checked,
         limit: parseInt(document.getElementById('postLimit').value) || 0,
         skipRedirects: document.getElementById('skipRedirects')?.checked ?? true,
-        visitPages: document.getElementById('visitPages')?.checked ?? false
+        visitPages: document.getElementById('visitPages')?.checked ?? false,
+        removeShortcodes: document.getElementById('removeShortcodes')?.checked ?? false
       };
       
       if (!settings.includePublished && !settings.includeDrafts && 
@@ -476,35 +493,57 @@ IMAGE LIST
 
   // Download button
   downloadButton.addEventListener('click', async () => {
-    const state = await checkCrawlState();
-    if (state.posts.length === 0) return;
-    
-    const exportFormat = document.getElementById('exportFormat').value;
-    
-    switch (exportFormat) {
-      case 'json':
-        downloadJSON(state.posts);
-        showStatus('JSON downloaded!', 'success');
-        break;
-      case 'csv-single':
-        downloadSingleCSV(state.posts);
-        showStatus('CSV downloaded!', 'success');
-        break;
-      case 'csv-multiple':
-        downloadMultipleCSV(state.posts);
-        break;
-    }
-    
-    // Download images if requested
-    const downloadImagesOption = document.getElementById('downloadImages')?.checked ?? false;
-    if (downloadImagesOption) {
-      const totalImages = state.posts.reduce((sum, post) => {
-        return sum + (post.images ? post.images.length : 0);
-      }, 0);
+    try {
+      console.log('Download button clicked');
       
-      if (totalImages > 0) {
-        setTimeout(() => downloadImages(state.posts), 1000);
+      // Get the latest state from background
+      const response = await chrome.runtime.sendMessage({ action: 'getCrawlState' });
+      console.log('Got state response:', response);
+      
+      const state = response.state;
+      
+      if (!state || !state.posts || state.posts.length === 0) {
+        console.error('No posts in state:', state);
+        showStatus('No data to download. Please crawl first.', 'error');
+        return;
       }
+      
+      console.log('Posts available:', state.posts.length);
+      
+      const exportFormat = document.getElementById('exportFormat').value;
+      console.log('Export format:', exportFormat);
+      
+      switch (exportFormat) {
+        case 'json':
+          console.log('Downloading JSON...');
+          downloadJSON(state.posts);
+          showStatus('JSON downloaded!', 'success');
+          break;
+        case 'csv-single':
+          console.log('Downloading single CSV...');
+          downloadSingleCSV(state.posts);
+          showStatus('CSV downloaded!', 'success');
+          break;
+        case 'csv-multiple':
+          console.log('Downloading multiple CSVs...');
+          downloadMultipleCSV(state.posts);
+          break;
+      }
+      
+      // Download images if requested
+      const downloadImagesOption = document.getElementById('downloadImages')?.checked ?? false;
+      if (downloadImagesOption) {
+        const totalImages = state.posts.reduce((sum, post) => {
+          return sum + (post.images ? post.images.length : 0);
+        }, 0);
+        
+        if (totalImages > 0) {
+          setTimeout(() => downloadImages(state.posts), 1000);
+        }
+      }
+    } catch (error) {
+      console.error('Download button error:', error);
+      showStatus(`Download error: ${error.message}`, 'error');
     }
   });
 

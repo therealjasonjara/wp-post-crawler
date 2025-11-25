@@ -1,23 +1,22 @@
 {
   "manifest_version": 3,
   "name": "WordPress Post Crawler",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Crawl WordPress posts including drafts, extract title, content, meta description, and images. Export to JSON or CSV. Works in background!",
   "permissions": [
     "activeTab",
     "scripting",
-    "storage"
+    "storage",
+    "sidePanel"
   ],
   "host_permissions": [
     "*://*/*"
   ],
   "action": {
-    "default_popup": "popup.html",
-    "default_icon": {
-      "16": "icon16.png",
-      "48": "icon48.png",
-      "128": "icon128.png"
-    }
+    "default_title": "WordPress Post Crawler"
+  },
+  "side_panel": {
+    "default_path": "popup.html"
   },
   "icons": {
     "16": "icon16.png",

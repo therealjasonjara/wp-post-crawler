@@ -24,6 +24,11 @@ function log(level, message, data = null) {
   console.log(`[Background ${level}]`, message, data || '');
 }
 
+// Open side panel when extension icon is clicked
+chrome.action.onClicked.addListener((tab) => {
+  chrome.sidePanel.open({ windowId: tab.windowId });
+});
+
 // Listen for messages from popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   log('INFO', 'Message received', { action: request.action });
@@ -244,6 +249,14 @@ function crawlWordPressPosts(settings) {
   try {
     log('Crawler function started', { settings, url: window.location.href });
     
+    // Helper function to remove WordPress shortcodes
+    function removeShortcodes(content) {
+      if (!content) return content;
+      // Remove all shortcodes: [shortcode], [shortcode attr="value"], [/shortcode]
+      // Pattern matches: [word] or [word attributes] or [/word]
+      return content.replace(/\[\/?\w+(?:\s+[^\]]*?)?\]/g, '');
+    }
+    
     // Helper function to extract meta description
     function getMetaDescription() {
       log('Getting meta description');
@@ -462,6 +475,12 @@ function crawlWordPressPosts(settings) {
       const featuredImage = getFeaturedImage();
       if (featuredImage) {
         postData.images.unshift(featuredImage);
+      }
+      
+      // Remove shortcodes if requested
+      if (settings.removeShortcodes && postData.content) {
+        postData.content = removeShortcodes(postData.content);
+        log('Shortcodes removed from content');
       }
       
       log('Single post crawl complete', {
